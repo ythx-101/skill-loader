@@ -205,4 +205,12 @@ def main():
 
 
 if __name__ == "__main__":
+
+# 版本检查
+try:
+    from version_check import check_for_update
+    check_for_update("ythx-101/skill-loader")
+except Exception:
+    pass
+
     main()
