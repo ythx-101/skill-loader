@@ -16,7 +16,7 @@ class SkillLoader:
     
     SKILL_TYPES = {
         'claude-marketplace': lambda p: os.path.exists(f"{p}/.claude-plugin/marketplace.json"),
-        'claude-single': lambda p: os.path.exists(f"{p}/.claude-plugin/SKILL.md"),
+        'claude-single': lambda p: os.path.exists(f"{p}/.claude-plugin/SKILL.md") or os.path.exists(f"{p}/SKILL.md"),
         'codex': lambda p: os.path.exists(f"{p}/codex.json"),
         'gemini-cli': lambda p: os.path.exists(f"{p}/skill.yaml"),
     }
@@ -69,8 +69,13 @@ class SkillLoader:
         return skills
     
     def load_claude_single(self, skill_path: Path) -> Dict[str, Any]:
-        """加载单一 Claude Code SKILL.md"""
+        """加载单一 Claude Code SKILL.md（支持新旧格式）"""
+        # 优先检查新格式 (.claude-plugin/SKILL.md)
         skill_md_path = skill_path / ".claude-plugin" / "SKILL.md"
+        if not skill_md_path.exists():
+            # 回退到旧格式 (SKILL.md)
+            skill_md_path = skill_path / "SKILL.md"
+        
         skill_data = self.parse_skill_md(skill_md_path)
         skill_data['source_type'] = 'claude-single'
         skill_data['path'] = str(skill_path)
