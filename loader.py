@@ -58,13 +58,28 @@ class SkillLoader:
         skills = []
         
         for plugin in marketplace.get('plugins', []):
-            for skill_ref in plugin.get('skills', []):
-                skill_md_path = skill_path / skill_ref / "SKILL.md"
-                if skill_md_path.exists():
-                    skill_data = self.parse_skill_md(skill_md_path)
-                    skill_data['source_type'] = 'claude-marketplace'
-                    skill_data['path'] = str(skill_md_path.parent)
-                    skills.append(skill_data)
+            # 方案1: 如果有 skills 字段（axtonliu 格式）
+            if 'skills' in plugin:
+                for skill_ref in plugin['skills']:
+                    skill_md_path = skill_path / skill_ref / "SKILL.md"
+                    if skill_md_path.exists():
+                        skill_data = self.parse_skill_md(skill_md_path)
+                        skill_data['source_type'] = 'claude-marketplace'
+                        skill_data['path'] = str(skill_md_path.parent)
+                        skills.append(skill_data)
+            
+            # 方案2: 如果没有 skills 字段，检查 skills/ 目录（lackeyjb 格式）
+            else:
+                skills_dir = skill_path / "skills"
+                if skills_dir.exists():
+                    for skill_dir in skills_dir.iterdir():
+                        if skill_dir.is_dir():
+                            skill_md_path = skill_dir / "SKILL.md"
+                            if skill_md_path.exists():
+                                skill_data = self.parse_skill_md(skill_md_path)
+                                skill_data['source_type'] = 'claude-marketplace'
+                                skill_data['path'] = str(skill_md_path.parent)
+                                skills.append(skill_data)
         
         return skills
     

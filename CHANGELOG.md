@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.2] - 2026-02-16
+
+### Fixed
+- **Marketplace format variants support**: Now handles both axtonliu-style (explicit `skills` array) and lackeyjb-style (auto-discover from `skills/` directory) marketplace formats
+- Successfully tested with `playwright-skill` (lackeyjb/playwright-skill, 1693 stars)
+
+### Changed
+- Updated `load_claude_marketplace()` to detect and handle two marketplace format variants:
+  - Variant 1: `marketplace.json` with explicit `skills: []` array
+  - Variant 2: Auto-discover all SKILL.md files in `skills/` directory when `skills` field is missing
+
+### Validation
+```bash
+# Now works with both marketplace formats
+python3 loader.py load /path/to/playwright-skill  # lackeyjb style
+python3 loader.py load /path/to/obsidian-visual   # axtonliu style
+```
+
 ## [0.1.1] - 2026-02-16
 
 ### Fixed
