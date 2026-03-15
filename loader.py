@@ -17,7 +17,7 @@ class SkillLoader:
     SKILL_TYPES = {
         'claude-marketplace': lambda p: os.path.exists(f"{p}/.claude-plugin/marketplace.json"),
         'claude-single': lambda p: os.path.exists(f"{p}/.claude-plugin/SKILL.md") or os.path.exists(f"{p}/SKILL.md"),
-        'codex': lambda p: os.path.exists(f"{p}/codex.json"),
+        'codex': lambda p: os.path.exists(f"{p}/codex.json") or os.path.exists(f"{p}/.codex/skills"),
         'gemini-cli': lambda p: os.path.exists(f"{p}/skill.yaml"),
     }
     
@@ -132,6 +132,40 @@ class SkillLoader:
             'frontmatter': frontmatter
         }
     
+    def load_codex(self, skill_path: Path) -> List[Dict[str, Any]]:
+        """加载 Codex CLI 格式的 skills（.codex/skills/<name>/SKILL.md）"""
+        skills = []
+
+        # 读取 codex.json 获取包级元数据（如果存在）
+        codex_json_path = skill_path / "codex.json"
+        codex_meta = {}
+        if codex_json_path.exists():
+            with open(codex_json_path, 'r', encoding='utf-8') as f:
+                try:
+                    codex_meta = json.load(f)
+                except json.JSONDecodeError:
+                    pass
+
+        # 扫描 .codex/skills/ 目录
+        codex_skills_dir = skill_path / ".codex" / "skills"
+        if not codex_skills_dir.exists():
+            return skills
+
+        for skill_dir in sorted(codex_skills_dir.iterdir()):
+            if not skill_dir.is_dir():
+                continue
+            skill_md_path = skill_dir / "SKILL.md"
+            if not skill_md_path.exists():
+                continue
+            skill_data = self.parse_skill_md(skill_md_path)
+            skill_data['source_type'] = 'codex'
+            skill_data['path'] = str(skill_dir)
+            if codex_meta:
+                skill_data['package_meta'] = codex_meta
+            skills.append(skill_data)
+
+        return skills
+
     def load_skill(self, skill_path: str) -> Dict[str, Any]:
         """加载指定路径的 skill"""
         path = Path(skill_path)
@@ -145,7 +179,7 @@ class SkillLoader:
         elif skill_type == 'claude-single':
             return self.load_claude_single(path)
         elif skill_type == 'codex':
-            raise NotImplementedError("Codex skills 尚未实现")
+            return self.load_codex(path)
         elif skill_type == 'gemini-cli':
             raise NotImplementedError("Gemini CLI skills 尚未实现")
     
@@ -205,12 +239,11 @@ def main():
 
 
 if __name__ == "__main__":
-
-# 版本检查
-try:
-    from version_check import check_for_update
-    check_for_update("ythx-101/skill-loader")
-except Exception:
-    pass
+    # 版本检查
+    try:
+        from version_check import check_for_update
+        check_for_update("ythx-101/skill-loader")
+    except Exception:
+        pass
 
     main()
