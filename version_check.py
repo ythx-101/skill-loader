@@ -13,12 +13,30 @@ import urllib.request
 from pathlib import Path
 
 
+def _parse(v):
+    """把 "0.1.2" 转成 (0, 1, 2)；解析失败返回 None"""
+    try:
+        return tuple(int(x) for x in str(v).strip().lstrip("v").split("."))
+    except (ValueError, AttributeError):
+        return None
+
+
+def _is_newer(remote, local):
+    """仅当两边都能解析且 remote > local 时返回 True"""
+    r, l = _parse(remote), _parse(local)
+    return r is not None and l is not None and r > l
+
+
 def check_for_update(repo: str, version_file: str = None):
     """
     检查 GitHub 是否有新版本并提示用户。
     在后台线程中运行，不阻塞主程序。
     仅在交互终端（TTY）中显示提醒。
     """
+    # 环境变量关闭开关
+    if os.environ.get("SKILL_LOADER_NO_UPDATE_CHECK") == "1":
+        return
+    
     # 非交互环境（管道、重定向）不显示
     if not sys.stderr.isatty():
         return
@@ -58,7 +76,7 @@ def _check_update_worker(repo: str, version_file: str = None):
                     cache = json.load(f)
                 if now - cache.get("checked_at", 0) < 86400:
                     remote = cache.get("remote_version", "")
-                    if remote and remote != local_version:
+                    if _is_newer(remote, local_version):
                         _print_update_notice(local_version, remote, repo)
                     return
             except (json.JSONDecodeError, KeyError):
@@ -77,7 +95,7 @@ def _check_update_worker(repo: str, version_file: str = None):
         with open(cache_file, 'w') as f:
             json.dump({"checked_at": now, "remote_version": remote_version}, f)
         
-        if remote_version and remote_version != local_version:
+        if _is_newer(remote_version, local_version):
             _print_update_notice(local_version, remote_version, repo)
     
     except Exception:

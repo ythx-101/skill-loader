@@ -5,10 +5,11 @@ OpenClaw Skill Loader - 通用 Skill 适配器
 """
 
 import os
+import sys
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 
 
 class SkillLoader:
@@ -35,6 +36,11 @@ class SkillLoader:
     def scan_skills(self) -> Dict[str, List[str]]:
         """扫描 skills 目录，返回所有可用的 skills"""
         skills = {}
+        
+        if not self.skills_dir.is_dir():
+            raise FileNotFoundError(
+                f"skills 目录不存在: {self.skills_dir}（可用环境变量 SKILL_LOADER_DIR 指定）"
+            )
         
         for skill_dir in self.skills_dir.iterdir():
             if not skill_dir.is_dir() or skill_dir.name.startswith('.'):
@@ -132,7 +138,7 @@ class SkillLoader:
             'frontmatter': frontmatter
         }
     
-    def load_skill(self, skill_path: str) -> Dict[str, Any]:
+    def load_skill(self, skill_path: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """加载指定路径的 skill"""
         path = Path(skill_path)
         skill_type = self.detect_skill_type(path)
@@ -166,7 +172,7 @@ class SkillLoader:
                             if trigger.lower() in text.lower():
                                 return skill
                 except Exception as e:
-                    print(f"加载 skill 失败: {path} - {e}")
+                    print(f"加载 skill 失败: {path} - {e}", file=sys.stderr)
                     continue
         
         return None
@@ -174,43 +180,44 @@ class SkillLoader:
 
 def main():
     """CLI 入口"""
-    import sys
-    
-    loader = SkillLoader()
-    
     if len(sys.argv) < 2:
         print("用法: python loader.py <scan|load|find> [path|trigger]")
         sys.exit(1)
     
+    skills_dir = os.environ.get("SKILL_LOADER_DIR") or "/root/clawd/skills"
+    loader = SkillLoader(skills_dir)
+    
     action = sys.argv[1]
     
-    if action == "scan":
-        skills = loader.scan_skills()
-        print(json.dumps(skills, indent=2, ensure_ascii=False))
-    
-    elif action == "load" and len(sys.argv) == 3:
-        skill = loader.load_skill(sys.argv[2])
-        print(json.dumps(skill, indent=2, ensure_ascii=False))
-    
-    elif action == "find" and len(sys.argv) == 3:
-        skill = loader.find_skill_by_trigger(sys.argv[2])
-        if skill:
+    try:
+        if action == "scan":
+            skills = loader.scan_skills()
+            print(json.dumps(skills, indent=2, ensure_ascii=False))
+        
+        elif action == "load" and len(sys.argv) == 3:
+            skill = loader.load_skill(sys.argv[2])
             print(json.dumps(skill, indent=2, ensure_ascii=False))
+        
+        elif action == "find" and len(sys.argv) == 3:
+            skill = loader.find_skill_by_trigger(sys.argv[2])
+            if skill:
+                print(json.dumps(skill, indent=2, ensure_ascii=False))
+            else:
+                print("未找到匹配的 skill")
+        
         else:
-            print("未找到匹配的 skill")
-    
-    else:
-        print("未知操作")
+            print("未知操作")
+            sys.exit(1)
+    except (FileNotFoundError, ValueError, NotImplementedError) as e:
+        print(f"错误: {e}", file=sys.stderr)
         sys.exit(1)
 
 
 if __name__ == "__main__":
-
-# 版本检查
-try:
-    from version_check import check_for_update
-    check_for_update("ythx-101/skill-loader")
-except Exception:
-    pass
-
+    # 版本检查（后台、非阻塞、仅 TTY）
+    try:
+        from version_check import check_for_update
+        check_for_update("ythx-101/skill-loader")
+    except Exception:
+        pass
     main()

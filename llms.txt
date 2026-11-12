@@ -1,0 +1,38 @@
+# skill-loader
+
+> Zero-dependency Python loader that detects and parses Claude Code skills (SKILL.md, .claude-plugin/marketplace.json) into JSON so they can be reused in OpenClaw. Codex and Gemini CLI support is planned.
+
+## What it does
+- Detects the skill format of a directory, parses name, description, triggers and instruction content, and prints JSON.
+- Read-only: it never modifies the original skill files.
+- Pure Python standard library, single file `loader.py`.
+
+## Supported formats
+- Claude Code single skill: `.claude-plugin/SKILL.md` (preferred) or root `SKILL.md`
+- Claude Code marketplace: `.claude-plugin/marketplace.json`, either an explicit `skills` array or auto-discovery of `skills/*/SKILL.md`
+- Codex (`codex.json`) and Gemini CLI (`skill.yaml`): detected only, loading is planned (raises "not implemented")
+
+## Install
+git clone https://github.com/ythx-101/skill-loader.git
+
+## Usage
+- `export SKILL_LOADER_DIR=/path/to/skills` (default: /root/clawd/skills)
+- `python3 skill-loader/loader.py scan` lists detected skills by type
+- `python3 skill-loader/loader.py load /path/to/skill` prints the parsed skill as JSON
+- `python3 skill-loader/loader.py find "text"` returns the first skill whose trigger appears in the text
+- `SKILL_LOADER_NO_UPDATE_CHECK=1` disables the daily update check (interactive terminals only)
+
+## Python usage
+import sys; sys.path.insert(0, "/path/to/skill-loader")
+from loader import SkillLoader
+skill = SkillLoader("/path/to/skills").load_skill("/path/to/skills/some-skill")
+
+## Limitations
+- No tool-call mapping yet (planned); no Codex / Gemini CLI loading yet (planned).
+- Frontmatter parsing is simple single-line `key: value`, not full YAML.
+- Triggers are extracted only from description text like: Triggers on "a", "b".
+
+## Links
+- README: https://github.com/ythx-101/skill-loader/blob/master/README.md
+- CHANGELOG: https://github.com/ythx-101/skill-loader/blob/master/CHANGELOG.md
+- LICENSE: https://github.com/ythx-101/skill-loader/blob/master/LICENSE

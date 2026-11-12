@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.3] - 2026-11-12
+
+### Fixed
+- CLI entry indentation error (the version check added after 0.1.2 left `main()` inside the `except` block, so the script could not run)
+- `find` diagnostics ("加载 skill 失败") now go to stderr instead of mixing into JSON on stdout
+- Version check only prompts when the remote version is newer than the local one
+- `scan` reports a one-line error (exit code 1) instead of a traceback when the skills directory does not exist
+
+### Added
+- `SKILL_LOADER_DIR` environment variable to set the skills directory (default unchanged: `/root/clawd/skills`)
+- `SKILL_LOADER_NO_UPDATE_CHECK=1` environment variable to disable the update check
+- `.gitignore`, unit tests (`tests/test_loader.py`, standard library `unittest`), `llms.txt`
+
+### Changed
+- Removed the committed `__pycache__` from the repository
+- README rewritten to match what the code actually implements
+
 ## [0.1.2] - 2026-02-16
 
 ### Fixed
